@@ -15,6 +15,9 @@ function countReducer(state, action) {
     case enums.INCREMENT:
       return {...state, count: state.count + payload}
 
+    case enums.DECREMENT:
+      return {...state, count: state.count - payload}
+
     default: {
       throw new Error(`Unsupported action type: ${type}`)
     }
@@ -27,7 +30,22 @@ function Counter({initialCount = 0, step = 1}) {
 
   const increment = () => dispatch({type: enums.INCREMENT, payload: step})
 
-  return <button onClick={increment}>{count}</button>
+  const decrement = () => dispatch({type: enums.DECREMENT, payload: step})
+
+  return (
+    <div
+      style={{
+        width: '100vw',
+        height: '100vh',
+        display: 'grid',
+        placeContent: 'center',
+      }}
+    >
+      <button onClick={increment}>+</button>
+      <button onClick={decrement}>-</button>
+      <p>{count}</p>
+    </div>
+  )
 }
 
 function App() {
