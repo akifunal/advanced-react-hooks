@@ -2,8 +2,8 @@ import * as React from 'react'
 import {alfredTip} from '@kentcdodds/react-workshop-app/test-utils'
 import {render} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import App from '../final/01'
-// import App from '../exercise/01'
+// import App from '../final/01.extra-4'
+import App from '../exercise/01'
 
 // don't do this in regular tests!
 const Counter = App().type
@@ -17,18 +17,23 @@ if (!Counter) {
 
 test('clicking the button increments the count with useReducer', () => {
   const {container} = render(<App />)
-  const button = container.querySelector('button')
+  const button = container.querySelectorAll('button')[0]
+  const count = container.querySelector('p')
+
   userEvent.click(button)
-  expect(button).toHaveTextContent('1')
+  expect(count).toHaveTextContent('1')
   userEvent.click(button)
-  expect(button).toHaveTextContent('2')
+  expect(count).toHaveTextContent('2')
 
   alfredTip(() => {
     const commentLessLines = Counter.toString()
       .split('\n')
       .filter(l => !l.trim().substr(0, 2).includes('//'))
       .join('\n')
-    expect(commentLessLines).toMatch('useReducer(')
+
+    console.log('🚀 ~ alfredTip ~ commentLessLines', commentLessLines)
+
+    expect(commentLessLines).toMatch('.useReducer')
     expect(commentLessLines).not.toMatch('useState(')
   }, 'The Counter component that is rendered must call "useReducer" and not "useState" to get the "state" and "dispatch" function and you should get rid of that useState call.')
 })

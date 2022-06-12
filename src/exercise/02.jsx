@@ -1,7 +1,7 @@
 // useCallback: custom hooks
 // http://localhost:3000/isolated/exercise/02.js
 
-import * as React from 'react'
+import {useCallback, useEffect, useReducer, useRef, useState} from 'react'
 import {
   fetchPokemon,
   PokemonForm,
@@ -9,6 +9,27 @@ import {
   PokemonInfoFallback,
   PokemonErrorBoundary,
 } from '../pokemon'
+
+function useSafeDispatch(dispatch) {
+  const mountedRef = useRef(false)
+
+  // to make this even more generic you should use the useLayoutEffect hook to
+  // make sure that you are correctly setting the mountedRef.current immediately
+  // after React updates the DOM. Even though this effect does not interact
+  // with the dom another side effect inside a useLayoutEffect which does
+  // interact with the dom may depend on the value being set
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
+
+  return useCallback(
+    (...args) => (mountedRef.current ? dispatch(...args) : void 0),
+    [dispatch],
+  )
+}
 
 function asyncReducer(state, action) {
   const {error, data, type} = action
@@ -29,55 +50,55 @@ function asyncReducer(state, action) {
   }
 }
 
-function useAsync(asyncCallback, initialState, dependencies) {
-  const [state, dispatch] = React.useReducer(asyncReducer, {
+function useAsync(initialState) {
+  const [state, unsafeDispatch] = useReducer(asyncReducer, {
     status: 'idle',
     data: null,
     error: null,
     ...initialState,
   })
 
-  React.useEffect(() => {
-    const promise = asyncCallback()
+  const dispatch = useSafeDispatch(unsafeDispatch)
 
-    if (!promise) {
-      return
-    }
+  const run = useCallback(
+    promise => {
+      dispatch({type: 'pending'})
 
-    dispatch({type: 'pending'})
+      promise.then(
+        data => {
+          dispatch({type: 'resolved', data})
+        },
+        error => {
+          dispatch({type: 'rejected', error})
+        },
+      )
+    },
+    [dispatch],
+  )
 
-    promise.then(
-      data => {
-        dispatch({type: 'resolved', data})
-      },
-      error => {
-        dispatch({type: 'rejected', error})
-      },
-    )
+  const {data, error, status} = state
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, dependencies)
-
-  const result = [state]
-
-  result.state = state
-
-  return result
+  return {data, error, status, run}
 }
 
 function PokemonInfo({pokemonName}) {
-  const [state] = useAsync(
-    () => {
-      if (!pokemonName) {
-        return
-      }
-      return fetchPokemon(pokemonName)
-    },
-    {status: pokemonName ? 'pending' : 'idle'},
-    [pokemonName],
-  )
+  const {
+    data: pokemon,
+    status,
+    error,
+    run,
+  } = useAsync({
+    status: pokemonName ? 'pending' : 'idle',
+  })
 
-  const {data: pokemon, status, error} = state
+  useEffect(() => {
+    if (!pokemonName) {
+      return
+    }
+
+    const pokemonPromise = fetchPokemon(pokemonName)
+    run(pokemonPromise)
+  }, [pokemonName, run])
 
   switch (status) {
     case 'idle':
@@ -94,7 +115,7 @@ function PokemonInfo({pokemonName}) {
 }
 
 function App() {
-  const [pokemonName, setPokemonName] = React.useState('')
+  const [pokemonName, setPokemonName] = useState('')
 
   function handleSubmit(newPokemonName) {
     setPokemonName(newPokemonName)
@@ -118,7 +139,8 @@ function App() {
 }
 
 function AppWithUnmountCheckbox() {
-  const [mountApp, setMountApp] = React.useState(true)
+  const [mountApp, setMountApp] = useState(true)
+  console.log('mounted')
   return (
     <div>
       <label>
