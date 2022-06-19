@@ -1,7 +1,15 @@
 // useCallback: custom hooks
 // http://localhost:3000/isolated/exercise/02.js
 
-import {useCallback, useEffect, useReducer, useRef, useState} from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useReducer,
+  useRef,
+  useState,
+} from 'react'
+
 import {
   fetchPokemon,
   PokemonForm,
@@ -18,7 +26,7 @@ function useSafeDispatch(dispatch) {
   // after React updates the DOM. Even though this effect does not interact
   // with the dom another side effect inside a useLayoutEffect which does
   // interact with the dom may depend on the value being set
-  useEffect(() => {
+  useLayoutEffect(() => {
     mountedRef.current = true
     return () => {
       mountedRef.current = false
@@ -140,7 +148,7 @@ function App() {
 
 function AppWithUnmountCheckbox() {
   const [mountApp, setMountApp] = useState(true)
-  console.log('mounted')
+
   return (
     <div>
       <label>
